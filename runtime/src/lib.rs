@@ -27,6 +27,7 @@ use frame_election_provider_support::onchain;
 use frame_system::EnsureRoot;
 #[cfg(feature = "std")]
 pub use pallet_staking::StakerStatus;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -268,6 +269,10 @@ impl pallet_transaction_payment::Config for Runtime {
 	type FeeMultiplierUpdate = ();
 }
 
+impl pallet_authority_discovery::Config for Runtime {
+	type MaxAuthorities = MaxAuthorities;
+}
+
 impl pallet_sudo::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -299,6 +304,7 @@ construct_runtime!(
 		Babe: pallet_babe,
 		Offences: pallet_offences,
 		ElectionProviderMultiPhase: pallet_election_provider_multi_phase,
+		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 	}
@@ -660,6 +666,12 @@ impl_runtime_apis! {
 				equivocation_proof,
 				key_owner_proof,
 			)
+		}
+	}
+
+	impl sp_authority_discovery::AuthorityDiscoveryApi<Block> for Runtime {
+		fn authorities() -> Vec<AuthorityDiscoveryId> {
+			AuthorityDiscovery::authorities()
 		}
 	}
 	

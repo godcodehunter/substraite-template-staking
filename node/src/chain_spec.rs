@@ -1,7 +1,7 @@
 use frame_benchmarking::frame_support::traits::tokens::Balance;
 use node_template_runtime::{
 	AccountId, SessionConfig, StakingConfig, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY, StakerStatus,
+	SystemConfig, WASM_BINARY, StakerStatus, AuthorityDiscoveryConfig,
 };
 use sc_service::ChainType;
 use sp_consensus_babe::AuthorityId as BabeId;
@@ -83,6 +83,7 @@ fn testnet_genesis(
 				.map(|i| (i.id, i.balance))
 				.collect(),
 		},
+		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		// Babe, Grandpa authorities come from Session pallet, 
 		// so it is should not be installed manually
 		babe: BabeConfig {
@@ -115,7 +116,6 @@ fn testnet_genesis(
 				.collect(),
 			validator_count: stakers.len() as u32,
 			minimum_validator_count: stakers.len() as u32,
-			// invulnerables: todo!(),
 			slash_reward_fraction: Perbill::from_percent(10),
 			..Default::default()
 		}, 

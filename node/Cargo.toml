@@ -28,6 +28,7 @@ version = '4.0.0-dev'
 [dependencies]
 jsonrpc-core = '18.0.0'
 structopt = '0.3.8'
+futures = "0.3.16"
 
 [dependencies.frame-benchmarking]
 git = 'https://github.com/paritytech/substrate.git'
@@ -72,6 +73,31 @@ version = '0.10.0-dev'
 
 [dependencies.sc-executor]
 features = ['wasmtime']
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev'
+
+[dependencies.sp-transaction-storage-proof]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = "4.0.0-dev"
+
+[dependencies.sc-consensus-uncles]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev'
+
+[dependencies.sc-network]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev'
+
+[dependencies.sc-authority-discovery]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev'
+
+[dependencies.sc-consensus-slots]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-11-1'
 version = '0.10.0-dev'
