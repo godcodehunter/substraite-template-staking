@@ -1,12 +1,14 @@
+use frame_benchmarking::frame_support::traits::tokens::Balance;
 use node_template_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY,
+	AccountId, SessionConfig, StakingConfig, BabeConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
+	SystemConfig, WASM_BINARY, StakerStatus,
 };
 use sc_service::ChainType;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{traits::{IdentifyAccount, Verify}, Perbill};
+use node_template_runtime::opaque::SessionKeys;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -31,46 +33,192 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+
+#[derive(Clone)]
+struct StashConfig {
+	stash: AccountId,
+	controller: AccountId,
+	balance: u128,
+}
+
+impl StashConfig {
+    fn new(stash: AccountId, controller: AccountId, balance: u128) -> Self { 
+		Self { stash, controller, balance }
+	}
+}
+
+#[derive(Clone)]
+struct AccountConfig {
+	id: AccountId,
+	balance: u128,
+}
+
+impl AccountConfig {
+    fn new_from_seed(str: &str, balance: u128) -> Self { 
+		Self { id: get_account_id_from_seed::<sr25519::Public>(str), balance } 
+	}
+}
+
+/// Configure initial storage state for FRAME modules.
+fn testnet_genesis(
+	wasm_binary: &[u8],
+	initial_authorities: Vec<(AccountId, AccountId, BabeId, GrandpaId)>,
+	root_key: AccountId,
+	endowed_accounts: Vec<AccountConfig>,
+	stakers: Vec<StashConfig>,
+) -> GenesisConfig {
+
+	GenesisConfig {
+		system: SystemConfig {
+			code: wasm_binary.to_vec(),
+			changes_trie_config: None,
+		},
+		sudo: SudoConfig {
+			key: root_key,
+		},
+		balances: BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|i| (i.id, i.balance))
+				.collect(),
+		},
+		// Babe, Grandpa authorities come from Session pallet, 
+		// so it is should not be installed manually
+		babe: BabeConfig {
+			authorities: vec![],
+			epoch_config: Some(node_template_runtime::BABE_GENESIS_EPOCH_CONFIG),
+		},
+		grandpa: GrandpaConfig {
+			authorities: vec![],
+		},
+		session: SessionConfig {
+			// Stash, controller, session-key
+    		keys: initial_authorities
+			.iter()
+			.map(|i| {
+				(
+					i.0.clone(), 
+					i.1.clone(), 
+					SessionKeys {
+						babe: i.2.clone(),
+						grandpa: i.3.clone(),
+    				},
+				)
+			})
+			.collect::<Vec<_>>(), 
+		},
+		staking: StakingConfig {
+			stakers: stakers
+				.iter()
+				.map(|i| (i.stash.clone(), i.controller.clone(), i.balance, StakerStatus::Validator))
+				.collect(),
+			validator_count: stakers.len() as u32,
+			minimum_validator_count: stakers.len() as u32,
+			// invulnerables: todo!(),
+			slash_reward_fraction: Perbill::from_percent(10),
+			..Default::default()
+		}, 
+		transaction_payment: Default::default(),
+	}
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+	let alice = AccountConfig::new_from_seed("Alice", 123000);
+	let bob = AccountConfig::new_from_seed("Bob", 123000);
+	let charlie = AccountConfig::new_from_seed("Charlie", 123000);
+	let dave = AccountConfig::new_from_seed("Dave", 123000);
+	let eve = AccountConfig::new_from_seed("Eve", 123000);
+	let ferdie = AccountConfig::new_from_seed("Ferdie", 123000);
+	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 123000);
+	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 123000);
+	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 123000);
+	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 123000);
+	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 123000);
+	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 123000);
+
+	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), 40000);
+	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), 40000);
+	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), 40000);
+	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), 40000);
+	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), 40000);
+	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), 40000);
+
 	Ok(ChainSpec::from_genesis(
-		// Name
 		"Development",
-		// ID
 		"dev",
 		ChainType::Development,
 		move || {
 			testnet_genesis(
 				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice")],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
 				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Alice"),
+						get_from_seed::<GrandpaId>("Alice"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Bob"),
+						get_from_seed::<GrandpaId>("Bob"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Charlie"),
+						get_from_seed::<GrandpaId>("Charlie"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Dave"),
+						get_from_seed::<GrandpaId>("Dave"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Eve"),
+						get_from_seed::<GrandpaId>("Eve"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Ferdie"),
+						get_from_seed::<GrandpaId>("Ferdie"),
+					),
 				],
-				true,
+				alice.id.clone(),
+				vec![
+					alice.clone(),
+					bob.clone(),
+					charlie.clone(),
+					eve.clone(),
+					ferdie.clone(),
+					alice_stash.clone(),
+					bob_stash.clone(),
+					charlie_stash.clone(),
+					dave_stash.clone(),
+					eve_stash.clone(),
+					ferdie_stash.clone(),
+				],
+				vec![
+					alice_stake.clone(),
+					bob_stake.clone(),
+					charlie_stake.clone(),
+					dave_stake.clone(),
+					eve_stake.clone(),
+					ferdie_stake.clone(),
+				],
 			)
 		},
-		// Bootnodes
 		vec![],
-		// Telemetry
 		None,
-		// Protocol ID
 		None,
-		// Properties
 		None,
-		// Extensions
 		None,
 	))
 }
@@ -78,78 +226,100 @@ pub fn development_config() -> Result<ChainSpec, String> {
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+	let alice = AccountConfig::new_from_seed("Alice", 123000);
+	let bob = AccountConfig::new_from_seed("Bob", 123000);
+	let charlie = AccountConfig::new_from_seed("Charlie", 123000);
+	let dave = AccountConfig::new_from_seed("Dave", 123000);
+	let eve = AccountConfig::new_from_seed("Eve", 123000);
+	let ferdie = AccountConfig::new_from_seed("Ferdie", 123000);
+	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 123000);
+	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 123000);
+	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 123000);
+	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 123000);
+	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 123000);
+	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 123000);
+
+	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), 40);
+	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), 40);
+	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), 40);
+	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), 40);
+	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), 40);
+	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), 40);
+
 	Ok(ChainSpec::from_genesis(
-		// Name
 		"Local Testnet",
-		// ID
 		"local_testnet",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
 				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
 				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Alice"),
+						get_from_seed::<GrandpaId>("Alice"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Bob"),
+						get_from_seed::<GrandpaId>("Bob"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Charlie"),
+						get_from_seed::<GrandpaId>("Charlie"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Dave"),
+						get_from_seed::<GrandpaId>("Dave"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Eve"),
+						get_from_seed::<GrandpaId>("Eve"),
+					),
+					(
+						alice_stake.stash.clone(),
+						alice_stake.controller.clone(),
+						get_from_seed::<BabeId>("Ferdie"),
+						get_from_seed::<GrandpaId>("Ferdie"),
+					),
 				],
-				true,
+				alice.id.clone(),
+				vec![
+					alice.clone(),
+					bob.clone(),
+					charlie.clone(),
+					eve.clone(),
+					ferdie.clone(),
+					alice_stash.clone(),
+					bob_stash.clone(),
+					charlie_stash.clone(),
+					dave_stash.clone(),
+					eve_stash.clone(),
+					ferdie_stash.clone(),
+				],
+				vec![
+					alice_stake.clone(),
+					bob_stake.clone(),
+					charlie_stake.clone(),
+					dave_stake.clone(),
+					eve_stake.clone(),
+					ferdie_stake.clone(),
+				],
 			)
 		},
-		// Bootnodes
 		vec![],
-		// Telemetry
 		None,
-		// Protocol ID
 		None,
-		// Properties
 		None,
-		// Extensions
 		None,
 	))
 }
 
-/// Configure initial storage state for FRAME modules.
-fn testnet_genesis(
-	wasm_binary: &[u8],
-	initial_authorities: Vec<(AuraId, GrandpaId)>,
-	root_key: AccountId,
-	endowed_accounts: Vec<AccountId>,
-	_enable_println: bool,
-) -> GenesisConfig {
-	GenesisConfig {
-		system: SystemConfig {
-			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
-			changes_trie_config: Default::default(),
-		},
-		balances: BalancesConfig {
-			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
-		},
-		aura: AuraConfig {
-			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
-		},
-		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
-		},
-		sudo: SudoConfig {
-			// Assign network admin rights.
-			key: root_key,
-		},
-		transaction_payment: Default::default(),
-	}
-}

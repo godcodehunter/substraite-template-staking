@@ -76,6 +76,26 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-11-1'
 version = '0.10.0-dev'
 
+[dependencies.sc-chain-spec]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '4.0.0-dev'
+
+[dependencies.sc-consensus-epochs]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev' 
+
+[dependencies.sp-authorship]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '4.0.0-dev'
+
+[dependencies.sp-keystore]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = '0.10.0-dev'
+
 [dependencies.sc-finality-grandpa]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-11-1'
@@ -137,10 +157,15 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-11-1'
 version = '0.10.0-dev'
 
-[dependencies.sp-consensus-aura]
+[dependencies.sc-consensus-babe]
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-11-1'
-version = '0.10.0-dev'
+version = "0.10.0-dev"
+
+[dependencies.sp-consensus-babe]
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'monthly-2021-11-1'
+version = "0.10.0-dev"
 
 [dependencies.sp-core]
 git = 'https://github.com/paritytech/substrate.git'
