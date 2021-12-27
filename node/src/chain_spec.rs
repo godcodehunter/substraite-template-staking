@@ -117,6 +117,7 @@ fn testnet_genesis(
 			validator_count: stakers.len() as u32,
 			minimum_validator_count: stakers.len() as u32,
 			slash_reward_fraction: Perbill::from_percent(10),
+			invulnerables: stakers.iter().map(|i| i.stash.clone()).collect(),
 			..Default::default()
 		}, 
 		transaction_payment: Default::default(),
@@ -126,25 +127,25 @@ fn testnet_genesis(
 pub fn development_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	let alice = AccountConfig::new_from_seed("Alice", 123000);
-	let bob = AccountConfig::new_from_seed("Bob", 123000);
-	let charlie = AccountConfig::new_from_seed("Charlie", 123000);
-	let dave = AccountConfig::new_from_seed("Dave", 123000);
-	let eve = AccountConfig::new_from_seed("Eve", 123000);
-	let ferdie = AccountConfig::new_from_seed("Ferdie", 123000);
-	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 123000);
-	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 123000);
-	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 123000);
-	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 123000);
-	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 123000);
-	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 123000);
+	let alice = AccountConfig::new_from_seed("Alice", 1 << 60);
+	let bob = AccountConfig::new_from_seed("Bob", 1 << 60);
+	let charlie = AccountConfig::new_from_seed("Charlie", 1 << 60);
+	let dave = AccountConfig::new_from_seed("Dave", 1 << 60);
+	let eve = AccountConfig::new_from_seed("Eve", 1 << 60);
+	let ferdie = AccountConfig::new_from_seed("Ferdie", 1 << 60);
+	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 1 << 60);
+	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 1 << 60);
+	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 1 << 60);
+	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 1 << 60);
+	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 1 << 60);
+	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 1 << 60);
 
-	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), 40000);
-	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), 40000);
-	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), 40000);
-	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), 40000);
-	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), 40000);
-	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), 40000);
+	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), (1 << 60)/2);
+	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), (1 << 60)/2);
+	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), (1 << 60)/2);
+	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), (1 << 60)/2);
+	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), (1 << 60)/2);
+	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), (1 << 60)/2);
 
 	Ok(ChainSpec::from_genesis(
 		"Development",
@@ -196,6 +197,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 					alice.clone(),
 					bob.clone(),
 					charlie.clone(),
+					dave.clone(),
 					eve.clone(),
 					ferdie.clone(),
 					alice_stash.clone(),
@@ -226,25 +228,25 @@ pub fn development_config() -> Result<ChainSpec, String> {
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-	let alice = AccountConfig::new_from_seed("Alice", 123000);
-	let bob = AccountConfig::new_from_seed("Bob", 123000);
-	let charlie = AccountConfig::new_from_seed("Charlie", 123000);
-	let dave = AccountConfig::new_from_seed("Dave", 123000);
-	let eve = AccountConfig::new_from_seed("Eve", 123000);
-	let ferdie = AccountConfig::new_from_seed("Ferdie", 123000);
-	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 123000);
-	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 123000);
-	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 123000);
-	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 123000);
-	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 123000);
-	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 123000);
+	let alice = AccountConfig::new_from_seed("Alice", 1 << 60);
+	let bob = AccountConfig::new_from_seed("Bob", 1 << 60);
+	let charlie = AccountConfig::new_from_seed("Charlie", 1 << 60);
+	let dave = AccountConfig::new_from_seed("Dave", 1 << 60);
+	let eve = AccountConfig::new_from_seed("Eve", 1 << 60);
+	let ferdie = AccountConfig::new_from_seed("Ferdie", 1 << 60);
+	let alice_stash = AccountConfig::new_from_seed("Alice//stash", 1 << 60);
+	let bob_stash = AccountConfig::new_from_seed("Bob//stash", 1 << 60);
+	let charlie_stash = AccountConfig::new_from_seed("Charlie//stash", 1 << 60);
+	let dave_stash = AccountConfig::new_from_seed("Dave//stash", 1 << 60);
+	let eve_stash = AccountConfig::new_from_seed("Eve//stash", 1 << 60);
+	let ferdie_stash = AccountConfig::new_from_seed("Ferdie//stash", 1 << 60);
 
-	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), 40);
-	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), 40);
-	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), 40);
-	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), 40);
-	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), 40);
-	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), 40);
+	let alice_stake = StashConfig::new(alice_stash.id.clone(), alice.id.clone(), (1 << 60)/2);
+	let bob_stake = StashConfig::new(bob_stash.id.clone(), bob.id.clone(), (1 << 60)/2);
+	let charlie_stake = StashConfig::new(charlie_stash.id.clone(), charlie.id.clone(), (1 << 60)/2);
+	let dave_stake = StashConfig::new(dave_stash.id.clone(), dave.id.clone(), (1 << 60)/2);
+	let eve_stake= StashConfig::new(eve_stash.id.clone(), eve.id.clone(), (1 << 60)/2);
+	let ferdie_stake = StashConfig::new(ferdie_stash.id.clone(), ferdie.id.clone(), (1 << 60)/2);
 
 	Ok(ChainSpec::from_genesis(
 		"Local Testnet",
@@ -296,6 +298,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 					alice.clone(),
 					bob.clone(),
 					charlie.clone(),
+					dave.clone(),
 					eve.clone(),
 					ferdie.clone(),
 					alice_stash.clone(),

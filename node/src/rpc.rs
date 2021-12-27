@@ -19,6 +19,8 @@ use sc_consensus_epochs::SharedEpochChanges;
 use sc_finality_grandpa::{FinalityProofProvider, GrandpaJustificationStream, SharedVoterState, SharedAuthoritySet};
 use node_template_runtime::{Hash, BlockNumber};
 use sc_rpc::SubscriptionTaskExecutor;
+use sp_consensus_babe::BabeApi;
+use sp_consensus::SelectChain;
 
 /// Extra dependencies for BABE.
 pub struct BabeDeps {
@@ -72,18 +74,43 @@ where
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	C::Api: BabeApi<Block>,
+	SC: SelectChain<Block> + 'static,
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
+	B: sc_client_api::Backend<Block> + Send + Sync + 'static
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 	use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
 	let mut io = jsonrpc_core::IoHandler::default();
 	let FullDeps { client, pool, deny_unsafe, select_chain, chain_spec, babe, grandpa} = deps;
-
+	let BabeDeps { keystore, babe_config, shared_epoch_changes } = babe;
+	let GrandpaDeps {
+		shared_voter_state,
+		shared_authority_set,
+		justification_stream,
+		subscription_executor,
+		finality_provider,
+	} = grandpa;
+	
 	io.extend_with(SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe)));
-
 	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone())));
+	io.extend_with(sc_consensus_babe_rpc::BabeApi::to_delegate(sc_consensus_babe_rpc::BabeRpcHandler::new(
+		client.clone(),
+		shared_epoch_changes.clone(),
+		keystore,
+		babe_config,
+		select_chain,
+		deny_unsafe,
+	)));
+	io.extend_with(sc_finality_grandpa_rpc::GrandpaApi::to_delegate(sc_finality_grandpa_rpc::GrandpaRpcHandler::new(
+		shared_authority_set.clone(),
+		shared_voter_state,
+		justification_stream,
+		subscription_executor,
+		finality_provider,
+	)));
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed

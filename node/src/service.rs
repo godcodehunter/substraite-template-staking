@@ -38,14 +38,14 @@ type FullBackend = sc_service::TFullBackend<Block>;
 // A chain selection algorithm instance
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport = sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
-type RpcExtensionsBuilder = impl Fn(
-	crate::rpc::DenyUnsafe,
+type RpcExtensionsBuilderFunc = impl Fn(
+	sc_rpc::DenyUnsafe,
 	sc_rpc::SubscriptionTaskExecutor,
-) -> Result<crate::rpc::IoHandler, sc_service::Error>;
+) -> Result<crate::rpc::IoHandler, sc_service::Error> + Send;
 
 // Everything else that needs to be passed into the main build function.
 type Other = (
-	RpcExtensionsBuilder,
+	RpcExtensionsBuilderFunc,
 	(
 		sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
 		sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
@@ -233,13 +233,7 @@ pub struct NewFullBase {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(
-	mut config: Configuration,
-	with_startup_data: impl FnOnce(
-		&sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
-		&sc_consensus_babe::BabeLink<Block>,
-	)
-) -> Result<NewFullBase, ServiceError> {
+pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -306,8 +300,6 @@ pub fn new_full(
 	})?;
 
 	let (block_import, grandpa_link, babe_link) = import_setup;
-
-	(with_startup_data)(&block_import, &babe_link);
 
 	if role.is_authority() {
 		let proposer = sc_basic_authorship::ProposerFactory::new(
@@ -444,7 +436,7 @@ pub fn new_full(
 	}
 
 	network_starter.start_network();
-	Ok(NewFullBase { task_manager, client, network, transaction_pool, rpc_handlers })
+	Ok(NewFullBase { task_manager, client, network, transaction_pool, rpc_handlers }.task_manager) //TODO
 }
 
 
